@@ -20,7 +20,7 @@ public class SelfCheck {
     static void eq(int e, int v) { if (e != v) throw new RuntimeException(e + "!=" + v); }
     static void eq(double e, double v) { if (Math.abs(e - v) > 0.001) throw new RuntimeException(e + "!=" + v); }
     static void eq(int[] e, int[] v) {
-        if (e.length != v.length) throw new RuntimeException("len");
+        if (e.length != v.length) throw new RuntimeException("длина");
         for (int i = 0; i < e.length; i++) if (e[i] != v[i]) throw new RuntimeException("i=" + i);
     }
     static void err(Runnable r, String s) {
@@ -28,36 +28,68 @@ public class SelfCheck {
             if (e.getMessage() == null || !e.getMessage().contains(s)) throw new RuntimeException(e.getMessage());
             return;
         }
-        throw new RuntimeException("нет искл.");
+        throw new RuntimeException("нет исключения");
     }
 
     static void u() {
         System.out.println("=== Unit ===");
-        t("p ok",  () -> eq(new int[]{8,9,10,8,8}, TimesheetAnalyzer.parseHours("8;9;10;8;8")));
-        t("p emp", () -> err(() -> TimesheetAnalyzer.parseHours(""), "структура"));
-        t("p 17",  () -> err(() -> TimesheetAnalyzer.parseHours("8;8;17;8;8"), "позиция 3"));
-        t("p abc", () -> err(() -> TimesheetAnalyzer.parseHours("8;abc;8;8;8"), "позиция 2"));
-        t("p 4",   () -> err(() -> TimesheetAnalyzer.parseHours("8;8;8;8"), "структура"));
-        t("p ;",   () -> err(() -> TimesheetAnalyzer.parseHours("8;8;8;8;8;"), "структура"));
-        t("p 08",  () -> err(() -> TimesheetAnalyzer.parseHours("08;8;8;8;8"), "позиция 1"));
-        t("s тип", () -> eq(43, TimesheetAnalyzer.total(new int[]{8,9,10,8,8})));
-        t("s min", () -> eq(0,  TimesheetAnalyzer.total(new int[]{0,0,0,0,0})));
-        t("s max", () -> eq(80, TimesheetAnalyzer.total(new int[]{16,16,16,16,16})));
-        t("a тип", () -> eq(8.6, TimesheetAnalyzer.average(new int[]{8,9,10,8,8})));
-        t("a цел", () -> eq(8.0, TimesheetAnalyzer.average(new int[]{8,8,8,8,8})));
-        t("a дро", () -> eq(7.8, TimesheetAnalyzer.average(new int[]{7,8,9,8,7})));
-        t("o 0",   () -> eq(0, TimesheetAnalyzer.overtimeDays(new int[]{8,8,8,8,8})));
-        t("o 2",   () -> eq(2, TimesheetAnalyzer.overtimeDays(new int[]{9,8,7,10,8})));
-        t("o гр",  () -> eq(1, TimesheetAnalyzer.overtimeDays(new int[]{8,9,8,8,8})));
-        t("w 40",  () -> eq(0,  TimesheetAnalyzer.weeklyOvertime(new int[]{8,8,8,8,8})));
-        t("w 50",  () -> eq(0,  TimesheetAnalyzer.weeklyOvertime(new int[]{10,10,10,10,10})));
-        t("w <40", () -> eq(10, TimesheetAnalyzer.weeklyOvertime(new int[]{6,6,6,6,6})));
-        t("w A45", () -> eq(0,  TimesheetAnalyzer.weeklyOvertime(new int[]{9,9,9,9,9})));
-        t("w A35", () -> eq(5,  TimesheetAnalyzer.weeklyOvertime(new int[]{7,7,7,7,7})));
-        t("r 40",  () -> eq(0,  TimesheetAnalyzer.addRestHours(new int[]{8,8,8,8,8})));
-        t("r 25",  () -> eq(15, TimesheetAnalyzer.addRestHours(new int[]{5,5,5,5,5})));
-        t("null",  () -> err(() -> TimesheetAnalyzer.total(null), "null"));
-        t("len",   () -> err(() -> TimesheetAnalyzer.average(new int[]{8,8}), "length"));
+
+        t("parseHours: корректная строка", () ->
+            eq(new int[]{8,9,10,8,8}, TimesheetAnalyzer.parseHours("8;9;10;8;8")));
+        t("parseHours: пустая строка", () ->
+            err(() -> TimesheetAnalyzer.parseHours(""), "структура"));
+        t("parseHours: значение 17 вне диапазона", () ->
+            err(() -> TimesheetAnalyzer.parseHours("8;8;17;8;8"), "позиция 3"));
+        t("parseHours: не число abc", () ->
+            err(() -> TimesheetAnalyzer.parseHours("8;abc;8;8;8"), "позиция 2"));
+        t("parseHours: 4 значения", () ->
+            err(() -> TimesheetAnalyzer.parseHours("8;8;8;8"), "структура"));
+        t("parseHours: trailing ;", () ->
+            err(() -> TimesheetAnalyzer.parseHours("8;8;8;8;8;"), "структура"));
+        t("parseHours: ведущий ноль 08", () ->
+            err(() -> TimesheetAnalyzer.parseHours("08;8;8;8;8"), "позиция 1"));
+
+        t("total: типовое 43", () ->
+            eq(43, TimesheetAnalyzer.total(new int[]{8,9,10,8,8})));
+        t("total: нижняя граница 0", () ->
+            eq(0, TimesheetAnalyzer.total(new int[]{0,0,0,0,0})));
+        t("total: верхняя граница 80", () ->
+            eq(80, TimesheetAnalyzer.total(new int[]{16,16,16,16,16})));
+
+        t("average: типовое 8.6", () ->
+            eq(8.6, TimesheetAnalyzer.average(new int[]{8,9,10,8,8})));
+        t("average: целое 8.0", () ->
+            eq(8.0, TimesheetAnalyzer.average(new int[]{8,8,8,8,8})));
+        t("average: дробное 7.8", () ->
+            eq(7.8, TimesheetAnalyzer.average(new int[]{7,8,9,8,7})));
+
+        t("overtimeDays: нет переработки", () ->
+            eq(0, TimesheetAnalyzer.overtimeDays(new int[]{8,8,8,8,8})));
+        t("overtimeDays: два дня", () ->
+            eq(2, TimesheetAnalyzer.overtimeDays(new int[]{9,8,7,10,8})));
+        t("overtimeDays: граница 8", () ->
+            eq(1, TimesheetAnalyzer.overtimeDays(new int[]{8,9,8,8,8})));
+
+        t("weeklyOvertime: сумма 40 -> 0", () ->
+            eq(0, TimesheetAnalyzer.weeklyOvertime(new int[]{8,8,8,8,8})));
+        t("weeklyOvertime: сумма 50 -> 0", () ->
+            eq(0, TimesheetAnalyzer.weeklyOvertime(new int[]{10,10,10,10,10})));
+        t("weeklyOvertime: сумма 30 -> 10", () ->
+            eq(10, TimesheetAnalyzer.weeklyOvertime(new int[]{6,6,6,6,6})));
+        t("weeklyOvertime (A): сумма 45 -> 0", () ->
+            eq(0, TimesheetAnalyzer.weeklyOvertime(new int[]{9,9,9,9,9})));
+        t("weeklyOvertime (A): сумма 35 -> 5", () ->
+            eq(5, TimesheetAnalyzer.weeklyOvertime(new int[]{7,7,7,7,7})));
+
+        t("addRestHours: сумма 40 -> 0", () ->
+            eq(0, TimesheetAnalyzer.addRestHours(new int[]{8,8,8,8,8})));
+        t("addRestHours: сумма 25 -> 15", () ->
+            eq(15, TimesheetAnalyzer.addRestHours(new int[]{5,5,5,5,5})));
+
+        t("total: null -> IAE", () ->
+            err(() -> TimesheetAnalyzer.total(null), "null"));
+        t("average: длина != 5 -> IAE", () ->
+            err(() -> TimesheetAnalyzer.average(new int[]{8,8}), "length"));
     }
 
     static void d() {
