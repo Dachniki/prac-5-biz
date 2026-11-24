@@ -1,0 +1,34 @@
+digraph ActivityDiagram {
+    graph [rankdir=TB, bgcolor="white", pad=0.35, nodesep=0.4, ranksep=0.45];
+    node [shape=box, style="rounded,filled", fontname="Calibri", fontsize=11, color="#1B4F72", fillcolor="#EBF5FB", margin="0.18,0.1"];
+    edge [fontname="Calibri", fontsize=10, color="#2C3E50"];
+
+    start_node [label="Старт складской операции", shape=oval, fillcolor="#D4EFDF", color="#1E8449"];
+    finish_node [label="Завершение операции", shape=oval, fillcolor="#FADBD8", color="#922B21"];
+
+    recv_req [label="Поступление запроса на операцию\n(вызов receive(code, q) или issue(code, q))", shape=parallelogram, fillcolor="#E8DAEF", color="#6C3483"];
+    find_item [label="Поиск номенклатуры в карте\n(StockItem item = inventory.get(code))", fillcolor="#EBF5FB", color="#1B4F72"];
+    check_exists [label="Запись найдена в\nкаталоге склада?", shape=diamond, fillcolor="#FCF3CF", color="#B7950B"];
+    
+    validate_op [label="Валидация бизнес-правил:\n• q > 0\n• Для issue: текущий_остаток - q >= 10\n(Вариант 4 / R2 неснижаемый запас)", fillcolor="#D6EAF8", color="#2874A6"];
+    check_valid [label="Условия\nвыполнены?", shape=diamond, fillcolor="#FCF3CF", color="#B7950B"];
+
+    apply_mutation [label="Корректировка складского баланса:\n• target.increase(q) [приход]\n• target.decrease(q) [отпуск/списание]", fillcolor="#D4EFDF", color="#1E8449"];
+    append_log [label="Внесение записи в журнал аудита:\nauditLog.add(new StockMovement(...))", fillcolor="#EBF5FB", color="#1B4F72"];
+    
+    throw_error [label="Прерывание транзакции:\nгенерация IllegalArgumentException\n(R9: код не найден / R2: нарушение резерва)", fillcolor="#FADBD8", color="#922B21"];
+
+    start_node -> recv_req;
+    recv_req -> find_item;
+    find_item -> check_exists;
+    check_exists -> validate_op [label="Да\n(item != null)"];
+    check_exists -> throw_error [label="Нет\n(R9: code not found)"];
+    
+    validate_op -> check_valid;
+    check_valid -> apply_mutation [label="Корректно\n(balance >= 10)"];
+    check_valid -> throw_error [label="Нарушение\n(balance < 10)"];
+    
+    apply_mutation -> append_log;
+    append_log -> finish_node;
+    throw_error -> finish_node;
+}
